@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROCK//QUIZ</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--bg:#090909;--pn:#151515;--red:#d61b1b;--yel:#ffcb05;--wh:#f5f5f5;--mut:#8a8a8a}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--wh);font-family:'Bebas Neue',Impact,'Arial Narrow',sans-serif;letter-spacing:1px;min-height:100%}
+body{background:radial-gradient(circle at 50% -10%,#3a0a0a 0,var(--bg) 55%) fixed;font-size:20px}
+.v{display:none;min-height:100vh;padding:20px}.v.on{display:block}
+.wrap{max-width:1400px;margin:0 auto}
+h1{font-size:clamp(64px,16vw,170px);line-height:.85;color:var(--wh);text-shadow:4px 4px 0 var(--red),0 0 40px rgba(214,27,27,.7)}
+h1 i{color:var(--yel);font-style:normal;text-shadow:4px 4px 0 var(--red),0 0 40px rgba(255,203,5,.6)}
+h2{font-size:30px;color:var(--yel);margin-bottom:10px;text-shadow:0 0 12px rgba(255,203,5,.4)}
+.sub{color:var(--yel);font-size:clamp(22px,4vw,40px);margin-top:14px}
+.era{color:var(--mut);font-size:clamp(18px,3vw,28px);margin-top:6px}
+.home{text-align:center;padding-top:6vh}
+.vinyl{width:150px;height:150px;border-radius:50%;margin:0 auto 24px;background:radial-gradient(circle,var(--red) 0 16%,#000 17% 19%,transparent 20%),repeating-radial-gradient(circle,#111 0 3px,#1c1c1c 4px 6px);box-shadow:0 0 30px rgba(214,27,27,.6),0 8px 0 #000;border:3px solid #000}
+.vinyl.spin{animation:sp 2.2s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.btn{font-family:inherit;letter-spacing:2px;font-size:28px;background:var(--red);color:var(--wh);border:3px solid #000;padding:16px 28px;cursor:pointer;box-shadow:6px 6px 0 #000,0 0 18px rgba(214,27,27,.55);text-transform:uppercase;transition:transform .08s}
+.btn:active{transform:translate(4px,4px);box-shadow:2px 2px 0 #000}
+.btn.y{background:var(--yel);color:#000;box-shadow:6px 6px 0 #000,0 0 18px rgba(255,203,5,.5)}
+.btn.g{background:#2a2a2a}
+.btn.sel{outline:4px solid var(--yel)}
+.btn:focus-visible,input:focus-visible{outline:3px solid var(--yel);outline-offset:3px}
+.btn.big{width:100%;max-width:520px;display:block;margin:18px auto;font-size:36px;padding:22px}
+.panel{background:var(--pn);border:2px solid #000;border-top:4px solid var(--red);box-shadow:0 6px 0 #000,0 0 22px rgba(0,0,0,.8);padding:16px;margin-bottom:16px}
+input[type=text]{width:100%;font-family:inherit;font-size:30px;letter-spacing:2px;background:#000;color:var(--wh);border:3px solid #333;padding:14px;margin:8px 0}
+input[type=text]:focus{border-color:var(--yel);outline:none}
+.radios{display:flex;gap:12px;margin:10px 0}.radios label{flex:1;text-align:center;padding:14px;border:3px solid #333;cursor:pointer;font-size:28px;background:#000}
+.radios input{display:none}.radios label.on{border-color:var(--yel);color:var(--yel);box-shadow:0 0 14px rgba(255,203,5,.4)}
+.form{max-width:520px;margin:6vh auto 0}
+.top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.code{font-size:clamp(44px,6vw,72px);color:var(--yel);text-shadow:0 0 18px rgba(255,203,5,.6)}
+.grid{display:grid;grid-template-columns:300px 1fr 340px;gap:16px}
+@media(max-width:1000px){.grid{grid-template-columns:1fr}}
+#qr{background:#fff;padding:10px;display:inline-block;margin:6px 0}
+.row{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dashed #333;font-size:24px}
+.row small{color:var(--mut);font-size:18px}.row b{color:var(--yel);font-weight:400}.off{opacity:.4}
+.timer{font-size:clamp(90px,16vw,170px);line-height:1;color:var(--yel);text-shadow:0 0 30px rgba(255,203,5,.6),4px 4px 0 #000;text-align:center}
+.timer.low{color:var(--red);text-shadow:0 0 30px rgba(214,27,27,.9),4px 4px 0 #000}
+.dec{text-align:center;font-size:40px;color:var(--red);text-shadow:0 0 14px rgba(214,27,27,.6)}
+.info{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.info img{width:140px;height:140px;object-fit:cover;border:3px solid #000;box-shadow:0 0 18px rgba(255,203,5,.4)}
+.info .t{font-size:38px;color:var(--wh)}.info .a{font-size:28px;color:var(--yel)}.host-only{color:var(--red);font-size:16px}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:12px}
+.ctl .btn{font-size:24px;padding:14px 8px}
+.ok{color:#4cff6a}.no{color:var(--red)}
+.pl{margin-top:16px;text-align:center}.pl .big{font-size:56px;color:var(--wh)}
+.pod{display:flex;align-items:center;gap:14px;padding:14px;margin:10px 0;background:#000;border-left:10px solid var(--mut);font-size:34px}
+.pod.p1{border-color:var(--yel);font-size:46px;box-shadow:0 0 24px rgba(255,203,5,.5)}.pod.p2{border-color:#cfcfcf}.pod.p3{border-color:#c46a2b}
+.pod span:last-child{margin-left:auto;color:var(--yel)}
+.star{text-align:center;border:4px solid var(--yel);background:linear-gradient(#2a0707,#000);padding:24px;margin:16px 0;box-shadow:0 0 40px rgba(255,203,5,.5)}
+.star .n{font-size:clamp(50px,11vw,110px);color:var(--yel);line-height:1;text-shadow:4px 4px 0 var(--red)}
+.hide{display:none!important}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--red);border:3px solid #000;padding:12px 22px;z-index:9;display:none;box-shadow:0 0 20px #000;text-align:center;max-width:90vw}
+.bar{height:10px;background:#000;margin-top:8px}.bar div{height:100%;background:var(--red);width:0}
+.pcard{max-width:560px;margin:0 auto}
+</style>
+<style>
+/* ===== Design-Upgrade: Bühne, Verstärker, Vinyl ===== */
+body{background:radial-gradient(ellipse 60% 40% at 15% -5%,rgba(255,203,5,.22),transparent 70%),radial-gradient(ellipse 60% 45% at 85% -5%,rgba(214,27,27,.5),transparent 70%),repeating-linear-gradient(90deg,rgba(255,255,255,.015) 0 2px,transparent 2px 5px),linear-gradient(#0d0d0d,#050505) fixed}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 170px #000;z-index:0}
+.v{position:relative;z-index:1}
+.tick{overflow:hidden;white-space:nowrap;background:var(--yel);color:#000;border-block:3px solid #000;transform:rotate(-1.2deg);margin:-6px -30px 36px;box-shadow:0 0 30px rgba(255,203,5,.45);font-size:26px}
+.tick span{display:inline-block;padding:4px 0;animation:tk 60s linear infinite}
+@keyframes tk{to{transform:translateX(-50%)}}
+h1{transform:skew(-6deg);letter-spacing:4px;text-shadow:none;color:transparent;background:linear-gradient(#fff 0 38%,var(--yel) 40% 62%,var(--red) 64%);-webkit-background-clip:text;background-clip:text;-webkit-text-stroke:2px #000;filter:drop-shadow(5px 5px 0 #000) drop-shadow(0 0 30px rgba(214,27,27,.8))}
+h1 i{color:transparent;text-shadow:none}
+.vinyl{width:min(260px,58vw);height:min(260px,58vw);margin-bottom:30px;background:radial-gradient(circle,#000 0 4%,var(--yel) 5% 8%,var(--red) 9% 22%,#000 23% 25%,transparent 26%),repeating-radial-gradient(circle,#0d0d0d 0 2px,#222 3px 4px),conic-gradient(#111,#333,#111,#2a2a2a,#111);box-shadow:0 0 50px rgba(214,27,27,.7),0 10px 0 #000}
+.panel{background:linear-gradient(180deg,#1e1e1e,#111);border:2px solid #000;border-top:0;position:relative;padding:44px 18px 18px;box-shadow:0 8px 0 #000,0 0 30px rgba(0,0,0,.9),inset 0 0 0 1px #2c2c2c}
+.panel::before{content:"";position:absolute;left:0;right:0;top:0;height:26px;background:repeating-linear-gradient(90deg,#000 0 3px,#2c2c2c 3px 6px);border-bottom:3px solid var(--red)}
+.panel::after{content:"";position:absolute;left:0;right:0;top:8px;height:10px;background:radial-gradient(circle at 16px 5px,#eee 0 3px,#555 4px,transparent 5px),radial-gradient(circle at calc(100% - 16px) 5px,#eee 0 3px,#555 4px,transparent 5px)}
+h2{display:flex;align-items:center;gap:10px;font-size:32px}
+h2::before{content:"";width:10px;height:28px;background:var(--red);box-shadow:0 0 12px var(--red);transform:skew(-12deg)}
+.btn{background:linear-gradient(#ee2a2a,#a01010);transform:skew(-6deg);text-shadow:2px 2px 0 #000;box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 -4px 0 rgba(0,0,0,.35),6px 6px 0 #000,0 0 22px rgba(214,27,27,.5)}
+.btn.y{background:linear-gradient(#ffe052,#e0a800);text-shadow:none}
+.btn.g{background:linear-gradient(#3a3a3a,#1c1c1c)}
+.btn:hover{filter:brightness(1.15)}
+.btn:active{transform:skew(-6deg) translate(4px,4px)}
+.timer{font-size:clamp(80px,14vw,140px);background:#000;border:4px solid #222;border-radius:6px;max-width:320px;margin:0 auto 10px;letter-spacing:6px;box-shadow:inset 0 0 30px rgba(214,27,27,.35),0 0 25px rgba(255,203,5,.2)}
+.timer.low{animation:pl .5s infinite alternate}@keyframes pl{to{filter:brightness(1.7)}}
+.eq{display:flex;gap:6px;justify-content:center;align-items:flex-end;height:50px;margin-bottom:14px}
+.eq span{width:14px;height:8px;background:linear-gradient(var(--yel),var(--red));box-shadow:0 0 8px var(--red)}
+.eq.on span{animation:eq .5s ease-in-out infinite alternate}
+.eq.on span:nth-child(2n){animation-duration:.7s}.eq.on span:nth-child(3n){animation-duration:.35s;animation-delay:-.2s}
+@keyframes eq{to{height:50px}}
+.dec:not(:empty){display:table;margin:0 auto 10px;background:var(--red);color:#fff;padding:2px 22px;transform:skew(-8deg);border:3px solid #000;box-shadow:4px 4px 0 #000}
+input[type=text]{background:linear-gradient(#000,#0b0b0b);box-shadow:inset 0 0 14px #000;color:var(--yel)}
+.info img{transform:rotate(-3deg)}
+.row:hover{background:rgba(255,255,255,.04)}
+.pod{background:linear-gradient(90deg,#1c1c1c,#000)}
+.pod.p1{background:linear-gradient(90deg,#ffcb05,#b88a00);color:#000}.pod.p1 span:last-child{color:#000}
+.star{position:relative;overflow:hidden}
+.star::before{content:"";position:absolute;inset:-100%;background:repeating-conic-gradient(rgba(255,203,5,.16) 0 8deg,transparent 8deg 20deg);animation:sp 30s linear infinite}
+.star>*{position:relative}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+
+/* ===== Modernes Design: clean, weich, Glas-Karten ===== */
+body{background:radial-gradient(ellipse 70% 50% at 50% -10%,rgba(214,27,27,.35),transparent 70%),radial-gradient(ellipse 50% 40% at 100% 100%,rgba(255,203,5,.08),transparent 70%),#090909 fixed}
+body::after,.tick,.panel::before,.panel::after,.star::before{display:none}
+h1{transform:none;background:none;-webkit-background-clip:border-box;background-clip:border-box;-webkit-text-stroke:0;filter:none;color:var(--wh);letter-spacing:2px;text-shadow:0 0 70px rgba(214,27,27,.7)}
+h1 i{color:var(--red);text-shadow:0 0 40px rgba(214,27,27,.9)}
+.sub{letter-spacing:6px}
+.vinyl{width:min(170px,45vw);height:min(170px,45vw);margin-bottom:26px;box-shadow:0 0 60px rgba(214,27,27,.45),0 20px 40px rgba(0,0,0,.6);border:0}
+.panel{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);border-radius:22px;padding:22px;box-shadow:0 16px 50px rgba(0,0,0,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+h2{font-size:24px;letter-spacing:3px;color:var(--wh);text-shadow:none;margin-bottom:14px}
+h2::before{width:9px;height:9px;border-radius:50%;transform:none;background:var(--red);box-shadow:0 0 14px var(--red)}
+.btn{border:0;border-radius:16px;transform:none;background:var(--red);color:#fff;text-shadow:none;font-size:24px;letter-spacing:2px;box-shadow:0 8px 28px rgba(214,27,27,.4);transition:transform .15s,filter .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.12)}
+.btn:active{transform:scale(.97);box-shadow:0 4px 14px rgba(214,27,27,.4)}
+.btn.y{background:var(--yel);color:#0a0a0a;box-shadow:0 8px 28px rgba(255,203,5,.3)}
+.btn.g{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);box-shadow:none}
+.btn.big{border-radius:20px;font-size:32px}
+.timer{background:none;border:0;box-shadow:none;max-width:none;letter-spacing:2px;text-shadow:0 0 50px rgba(255,203,5,.35)}
+.timer.low{color:#ff4040;text-shadow:0 0 50px rgba(214,27,27,.8)}
+.eq span{width:8px;border-radius:4px;box-shadow:none}
+.dec:not(:empty){transform:none;border:1px solid rgba(214,27,27,.6);border-radius:999px;background:rgba(214,27,27,.14);box-shadow:none;padding:2px 22px;font-size:30px}
+input[type=text]{border:1px solid rgba(255,255,255,.14);border-radius:16px;background:rgba(255,255,255,.05);box-shadow:none;color:var(--wh)}
+input[type=text]:focus{border-color:var(--yel);box-shadow:0 0 0 4px rgba(255,203,5,.15)}
+.radios label{border:1px solid rgba(255,255,255,.14);border-radius:16px;background:rgba(255,255,255,.04)}
+.radios label.on{background:rgba(255,203,5,.12);border-color:var(--yel);box-shadow:none}
+.row{border-bottom:1px solid rgba(255,255,255,.07)}
+.row:last-child{border-bottom:0}
+.info img{transform:none;border:0;border-radius:16px;box-shadow:0 12px 34px rgba(0,0,0,.6)}
+.pod{border-left:0;border-radius:18px;background:rgba(255,255,255,.05)}
+.pod.p2{box-shadow:inset 6px 0 0 #cfcfcf}.pod.p3{box-shadow:inset 6px 0 0 #c46a2b}
+.pod.p1{background:linear-gradient(90deg,#ffcb05,#e0a800);box-shadow:0 12px 40px rgba(255,203,5,.3)}
+.star{border:1px solid rgba(255,203,5,.4);border-radius:26px;background:linear-gradient(160deg,#2a0c0c,#0d0d0d);box-shadow:0 0 70px rgba(255,203,5,.18)}
+.bar{border-radius:6px;overflow:hidden;background:rgba(255,255,255,.08)}
+.bar div{background:linear-gradient(90deg,var(--red),var(--yel))}
+#qr{border-radius:16px}
+#toast{border:0;border-radius:14px;background:#1f1f1f;border-left:5px solid var(--red)}
+
+/* ===== Design 3: minimal, Gelb-Akzent, Rot nur als Warnfarbe ===== */
+body{background:radial-gradient(ellipse 60% 40% at 50% -10%,rgba(255,255,255,.08),transparent 70%),radial-gradient(ellipse 40% 30% at 92% 0,rgba(255,203,5,.12),transparent 70%),#090909 fixed}
+h1{letter-spacing:1px;text-shadow:0 0 80px rgba(255,203,5,.25)}
+h1 i{color:var(--yel);text-shadow:0 0 40px rgba(255,203,5,.5)}
+.sub{color:var(--wh);letter-spacing:8px;font-size:clamp(18px,3vw,28px)}
+.vinyl{background:radial-gradient(circle,#000 0 4%,var(--yel) 5% 20%,#000 21% 23%,transparent 24%),repeating-radial-gradient(circle,#0d0d0d 0 2px,#1d1d1d 3px 4px),conic-gradient(#111,#2e2e2e,#111,#262626,#111);box-shadow:0 0 60px rgba(255,203,5,.2),0 20px 40px rgba(0,0,0,.6)}
+.panel{border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 24px 60px rgba(0,0,0,.5)}
+h2{font-size:20px;letter-spacing:4px;color:var(--mut)}
+h2::before{background:var(--yel);box-shadow:0 0 12px rgba(255,203,5,.8)}
+.btn{background:var(--wh);color:#0a0a0a;border-radius:999px;font-size:22px;box-shadow:0 6px 24px rgba(255,255,255,.08)}
+.btn:active{box-shadow:none}
+.btn.y{background:var(--yel);color:#0a0a0a;box-shadow:0 8px 30px rgba(255,203,5,.28)}
+.btn.g{background:rgba(255,255,255,.07);color:var(--wh);border:1px solid rgba(255,255,255,.12);box-shadow:none}
+.btn.big{border-radius:999px}
+.timer{color:var(--wh);text-shadow:0 0 60px rgba(255,203,5,.3)}
+.timer.low{color:#ff6b5a;text-shadow:0 0 50px rgba(255,107,90,.6)}
+.eq span{background:linear-gradient(var(--wh),var(--yel))}
+.dec:not(:empty){color:var(--yel);border-color:rgba(255,203,5,.5);background:rgba(255,203,5,.1)}
+.code{text-shadow:0 0 30px rgba(255,203,5,.35)}
+.host-only{color:var(--mut)}
+.star{background:linear-gradient(160deg,#1c1a0c,#0d0d0d);border-color:rgba(255,203,5,.35);box-shadow:0 0 70px rgba(255,203,5,.15)}
+.star .n{text-shadow:0 0 40px rgba(255,203,5,.4)}
+.bar div{background:var(--yel)}
+#toast{border-left-color:var(--yel)}
+#qrBig{position:fixed;inset:0;z-index:20;background:rgba(5,5,5,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;cursor:zoom-out}
+#qrBigBox{background:#fff;padding:18px;border-radius:26px;box-shadow:0 0 80px rgba(255,203,5,.25)}
+#qrBigBox img,#qrBigBox canvas{display:block}
+/* Beamer-Modus */
+.beam{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:24px;align-items:start;max-width:1700px;margin:0 auto;min-height:90vh}
+@media(max-width:1000px){.beam{grid-template-columns:1fr}}
+.bmid{text-align:center;padding-top:2vh}
+#bQr{background:#fff;padding:14px;border-radius:22px;display:inline-block;margin:6px 0}
+#bQr img,#bQr canvas{display:block}
+.beam .row{font-size:34px}
+.beam .code{font-size:clamp(50px,6vw,90px)}
+.beam .timer{font-size:clamp(110px,16vw,240px)}
+#bRev{position:fixed;inset:0;z-index:30;background:rgba(5,5,5,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:20px}
+#bRev img{width:min(46vh,70vw);height:min(46vh,70vw);object-fit:cover;border-radius:26px;box-shadow:0 0 90px rgba(255,203,5,.25)}
+#bRev .t{font-size:clamp(44px,8vw,110px);line-height:1}
+#bRev .a{font-size:clamp(30px,5vw,64px);color:var(--yel)}
+#bRev .pg{width:min(500px,70vw);height:6px;background:rgba(255,255,255,.12);border-radius:6px;overflow:hidden}
+#bRev .pg i{display:block;height:100%;background:var(--yel);animation:pg 5s linear forwards}
+@keyframes pg{from{width:100%}to{width:0}}
+
+/* ===== Design 4: Retro-Print – Papier, Tinte, Senfgelb, Rot ===== */
+:root{--bg:#ede6d6;--pn:#f6f1e4;--wh:#161616;--red:#c8442f;--yel:#e8c050;--mut:#6b6558;--ink:#161616}
+html,body{background:#ede6d6;color:var(--ink)}
+body{background:radial-gradient(#cfc6b0 1px,transparent 1.2px) 0 0/14px 14px,#ede6d6;font-family:'Space Mono',ui-monospace,Menlo,monospace;font-size:16px;letter-spacing:0}
+h1,h2,.timer,.code,.sub,.dec,.star .n,.pod,.info .t,.logo,#bRev .t,#bRev .a{font-family:'Bebas Neue',Impact,'Arial Narrow',sans-serif}
+h1{color:var(--ink);text-shadow:none;letter-spacing:0;line-height:.88}
+h1 i,.logo i{color:var(--red);text-shadow:none;font-style:normal}
+.sub{color:var(--ink);letter-spacing:2px}
+.era{color:var(--mut);font-size:15px}
+.hdr{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:6px solid var(--ink);padding:10px 32px;margin:-20px -20px 0}
+.logo{font-size:64px;line-height:1;color:var(--ink)}
+.hmeta{font-weight:700;font-size:14px}
+.home{text-align:left;max-width:1000px;padding-top:10vh}
+.home h1{font-size:clamp(90px,17vw,210px)}
+.sticker{display:inline-block;background:var(--red);color:#f6f1e4;font-weight:700;font-size:15px;letter-spacing:2px;padding:10px 18px;transform:rotate(-2deg);margin-bottom:16px}
+.lead{max-width:640px;font-size:17px;line-height:1.7;margin-top:28px}
+.home div[style]{display:flex;gap:20px;flex-wrap:wrap;margin-top:28px!important}
+@media(max-width:700px){.hmeta{display:none}.hdr{padding:8px 16px}.logo{font-size:44px}}
+.panel{background:var(--pn);border:3px solid var(--ink);border-radius:0;box-shadow:6px 6px 0 var(--ink);padding:22px;-webkit-backdrop-filter:none;backdrop-filter:none}
+h2{font-size:28px;letter-spacing:1px;color:var(--ink)}
+h2::before{width:12px;height:12px;border-radius:0;background:var(--red);box-shadow:none}
+.btn{font-family:'Space Mono',ui-monospace,monospace;font-weight:700;font-size:16px;letter-spacing:0;text-transform:uppercase;background:var(--ink);color:#f6f1e4;border:3px solid var(--ink);border-radius:0;box-shadow:6px 6px 0 var(--red);padding:16px 26px;transform:none;text-shadow:none;filter:none}
+.btn:hover{filter:none;transform:translate(-1px,-1px);box-shadow:7px 7px 0 var(--red)}
+.btn:active{transform:translate(4px,4px);box-shadow:2px 2px 0 var(--red)}
+.btn.y{background:var(--yel);color:var(--ink);box-shadow:6px 6px 0 var(--ink)}
+.btn.y:hover{box-shadow:7px 7px 0 var(--ink)}.btn.y:active{box-shadow:2px 2px 0 var(--ink)}
+.btn.g{background:var(--pn);color:var(--ink);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink)}
+.btn.g:hover{box-shadow:7px 7px 0 var(--ink)}.btn.g:active{box-shadow:2px 2px 0 var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.big{font-size:20px;padding:20px;border-radius:0}
+.ctl .btn{font-size:14px;padding:14px 8px}
+.timer{color:var(--ink);font-size:clamp(90px,14vw,150px);text-shadow:4px 4px 0 var(--yel);letter-spacing:0}
+.timer.low{color:var(--red);text-shadow:4px 4px 0 var(--ink);animation:none}
+.eq span{background:var(--ink);box-shadow:none;border-radius:0;width:10px}
+.dec:not(:empty){background:var(--red);color:#f6f1e4;border:3px solid var(--ink);border-radius:0;transform:rotate(-2deg);box-shadow:4px 4px 0 var(--ink);font-size:26px;padding:2px 18px}
+input[type=text]{font-family:'Space Mono',ui-monospace,monospace;font-size:20px;font-weight:700;letter-spacing:0;background:#fff8e8;color:var(--ink);border:3px solid var(--ink);border-radius:0;box-shadow:4px 4px 0 var(--ink)}
+input[type=text]:focus{border-color:var(--ink);box-shadow:4px 4px 0 var(--red)}
+.radios label{font-size:18px;font-weight:700;border:3px solid var(--ink);border-radius:0;background:var(--pn);color:var(--ink)}
+.radios label.on{background:var(--yel);color:var(--ink);border-color:var(--ink);box-shadow:4px 4px 0 var(--ink)}
+.row{border-bottom:2px dashed var(--ink);font-size:17px}
+.row:last-child{border-bottom:0}.row:hover{background:transparent}
+.row small{color:var(--mut);font-size:13px}
+.row b{color:var(--ink);background:var(--yel);padding:0 8px;font-weight:700}
+.ok{color:#1f7a3a}.no{color:var(--red)}
+.info img{border:3px solid var(--ink);border-radius:0;box-shadow:5px 5px 0 var(--ink)}
+.info .t{font-size:42px;color:var(--ink)}.info .a{font-size:18px;color:var(--red);font-weight:700}
+.host-only{color:var(--mut);font-size:12px}
+.pod{background:var(--pn);color:var(--ink);border:3px solid var(--ink);border-radius:0;box-shadow:4px 4px 0 var(--ink)}
+.pod.p1{background:var(--yel);box-shadow:6px 6px 0 var(--ink)}.pod.p2{background:#d9d4c7;box-shadow:4px 4px 0 var(--ink)}.pod.p3{background:#e3b48a;box-shadow:4px 4px 0 var(--ink)}
+.pod span:last-child{color:var(--red)}.pod.p1 span:last-child{color:var(--ink)}
+.star{background:var(--red);color:#f6f1e4;border:3px solid var(--ink);border-radius:0;box-shadow:8px 8px 0 var(--ink)}
+.star .n{color:var(--yel);text-shadow:4px 4px 0 var(--ink)}.star .era,.star .sub{color:#f6f1e4}
+.bar{background:#fff8e8;border:2px solid var(--ink);border-radius:0}.bar div{background:var(--red)}
+#toast{background:var(--ink);color:#f6f1e4;border:3px solid var(--ink);border-left:8px solid var(--yel);border-radius:0;box-shadow:4px 4px 0 var(--red);font-size:15px}
+#qr,#bQr{background:#fff;border:3px solid var(--ink);border-radius:0}
+#qrBig{background:rgba(237,230,214,.97);-webkit-backdrop-filter:none;backdrop-filter:none}
+#qrBigBox{border:4px solid var(--ink);border-radius:0;box-shadow:8px 8px 0 var(--ink)}
+.code{color:var(--ink);text-shadow:4px 4px 0 var(--yel)}
+.beam .row{font-size:26px}
+#bRev{background:rgba(237,230,214,.98)}
+#bRev img{border:4px solid var(--ink);border-radius:0;box-shadow:10px 10px 0 var(--ink)}
+#bRev .t{color:var(--ink)}#bRev .a{color:var(--red)}
+#bRev .pg{background:#fff8e8;border:2px solid var(--ink);border-radius:0}#bRev .pg i{background:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- ===== STARTSEITE ===== -->
+<section id="home" class="v on"><header class="hdr"><div class="logo">ROCK<i>//</i>QUIZ</div><div class="hmeta">70s · 80s · 90s · 00s / SOLO + TEAM</div></header><div class="wrap home">
+  <div class="sticker">LIVE MUSIC QUIZ</div>
+  <h1>TURN IT<br>UP.</h1>
+  <p class="lead">Ein Retro-Rock- &amp; Metal-Quiz für den Raum, den Beamer und jedes Smartphone. Spiele solo oder gründe ein Team. QR-Code scannen, Antwort wählen, Punkte sammeln.</p>
+  
+  <div style="margin-top:40px">
+    <button class="btn y" id="bJoin">MITMACHEN →</button>
+    <button class="btn y" id="bHost">HOST-MODUS</button>
+  </div>
+</div></section>
+
+<!-- ===== JOIN ===== -->
+<section id="join" class="v"><div class="form">
+  <h2>BEITRETEN</h2>
+  <div class="panel">
+    <label>RAUMCODE</label><input type="text" id="jr" placeholder="RQ-XXXXXX" autocomplete="off" autocapitalize="characters">
+    <label>NAME</label><input type="text" id="jn" placeholder="DEIN NAME" maxlength="20" autocomplete="off">
+    <div class="radios">
+      <label class="on" id="lSolo"><input type="radio" name="mode" value="solo" checked>Solo</label>
+      <label id="lTeam"><input type="radio" name="mode" value="team">Team</label>
+    </div>
+    <div id="teamBox" class="hide"><label>TEAMNAME</label><input type="text" id="jt" placeholder="TEAMNAME" maxlength="20" autocomplete="off"></div>
+    <button class="btn big y" id="bGo">BEITRETEN</button>
+    <button class="btn g" id="bBack" style="width:100%">ZURÜCK</button>
+  </div>
+</div></section>
+
+<!-- ===== HOST ===== -->
+<section id="host" class="v"><div class="wrap">
+  <div class="top"><div><div class="sub" style="margin:0">ROCK//QUIZ HOST</div><div class="code" id="hCode">…</div></div>
+    <div id="hDec" class="dec"></div><button class="btn g" id="bBeam">BEAMER-MODUS</button></div>
+  <div class="grid">
+    <div>
+      <div class="panel"><h2>RAUM</h2><div id="qr" title="Zum Vergrößern klicken" style="cursor:zoom-in"></div><div class="era" style="font-size:16px;margin:0 0 8px">Zum Vergrößern klicken</div><div style="font-size:16px;color:var(--mut);word-break:break-all" id="hUrl"></div></div>
+      <div class="panel"><h2>SPIELER (<span id="hCnt">0</span>)</h2><div id="hPlayers"></div></div>
+      <div class="panel"><h2>SONGS</h2><div id="hLoad">Lade…</div><div class="bar"><div id="hBar"></div></div></div>
+    </div>
+    <div>
+      <div class="panel">
+        <div class="timer" id="hTimer">30</div>
+        <div class="eq" id="hEq"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <h2>RUNDE STARTEN</h2>
+        <div class="ctl" id="hCats"></div>
+      </div>
+      <div class="panel">
+        <h2>AKTUELLER SONG <span class="host-only">NUR HOST</span></h2>
+        <div class="info" id="hSong"><div class="a">Noch kein Song.</div></div>
+        <div class="ctl">
+          <button class="btn y" id="cPlay">PLAY</button><button class="btn g" id="cPause">PAUSE</button>
+          <button class="btn g" id="cStop">STOP</button><button class="btn" id="cRand">RANDOM SONG</button>
+          <button class="btn y" id="cRev">AUFLÖSEN</button><button class="btn" id="cNext">NÄCHSTER SONG</button>
+          <button class="btn y" id="cFin">FINALE</button>
+        </div>
+      </div>
+      <div class="panel"><h2>ANTWORTEN LIVE</h2><div id="hAns"></div></div>
+    </div>
+    <div>
+      <div class="panel"><h2>LIVE-SCORES</h2><div id="hScores"></div></div>
+      <div class="panel"><h2>TEAM-RANKING</h2><div id="hTeams"></div></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ===== BEAMER ===== -->
+<section id="beam" class="v">
+  <button class="btn g" id="bExit" style="position:fixed;top:14px;right:14px;opacity:.35;padding:8px 16px;font-size:18px;z-index:5">✕ BEENDEN</button>
+  <div class="beam">
+    <div class="panel" style="text-align:center"><h2>JETZT BEITRETEN</h2><div id="bQr"></div><div class="code" id="bCode"></div><div class="era" id="bUrl" style="word-break:break-all;font-size:18px"></div></div>
+    <div class="bmid">
+      <h1 style="font-size:clamp(50px,8vw,120px)">ROCK<i>//</i>QUIZ</h1>
+      <div class="dec" id="bMode"></div>
+      <div class="timer hide" id="bTimer">30</div>
+      <div class="eq hide" id="bEq"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <button class="btn y big" id="bRand">RANDOM SONG</button>
+    </div>
+    <div><div class="panel"><h2>RANGLISTE</h2><div id="bPl"></div></div><div class="panel"><h2>TEAMS</h2><div id="bTm"></div></div></div>
+  </div>
+  <div id="bRev" class="hide"></div>
+</section>
+
+<!-- ===== SPIELER ===== -->
+<section id="player" class="v"><div class="pcard">
+  <div class="top"><div id="pName" class="code" style="font-size:40px"></div><div style="font-size:34px">PUNKTE <b id="pPts" style="color:var(--yel);font-weight:400">0</b></div></div>
+  <div class="panel" id="pWait"><h2>WARTE AUF HOST…</h2><div class="era">Gleich geht's los!</div></div>
+  <div id="pGame" class="hide">
+    <div class="dec" id="pDec"></div>
+    <div class="timer" id="pTimer">30</div>
+    <div class="eq" id="pEq"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="panel" id="pQ">
+      <h2 id="pH">WELCHER SONG LÄUFT?</h2><div id="pOpts"></div>
+      <input type="text" id="pIn" placeholder="TITEL ODER INTERPRET" maxlength="100" autocomplete="off">
+      <button class="btn big y" id="pSend" style="margin-bottom:0">ANTWORT SENDEN</button>
+      <div id="pFb" class="era" style="text-align:center"></div>
+    </div>
+    <div class="panel hide" id="pRev"></div>
+  </div>
+  <div id="pFinal" class="hide"></div>
+</div></section>
+
+<!-- ===== FINALE (Host) ===== -->
+<section id="fin" class="v"><div class="wrap" style="max-width:800px">
+  <h1 style="font-size:clamp(50px,12vw,110px)">FINALE</h1>
+  <div id="finBody"></div>
+  <button class="btn big g hide" id="finBack">ZURÜCK ZUM SPIEL</button>
+</div></section>
+
+<div id="qrBig" class="hide"><div id="qrBigBox"></div><div class="code" id="qrBigCode"></div><div class="era">Zum Schließen tippen</div></div>
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   ROCK//QUIZ – komplette App in einer Datei
+   ============================================================ */
+
+/* ---------- Helfer ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function show(id){ document.querySelectorAll('.v').forEach(e => e.classList.toggle('on', e.id === id)); window.scrollTo(0,0); }
+let toastT;
+function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(toastT); toastT=setTimeout(()=>t.style.display='none',3500); }
+/* Normalisierung: klein, Umlaute/Akzente weg, Sonderzeichen ignorieren */
+function norm(s){
+  return String(s).toLowerCase().replace(/ß/g,'ss').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/&/g,' and ').replace(/[^a-z0-9]+/g,' ').trim();
+}
+/* Antwort gilt als richtig, wenn Titel ODER Interpret enthalten ist */
+const nz = s => norm(s).replace(/^the /,'').replace(/ the /g,' ');
+/* STRENGE Auswertung: nur exakte Übereinstimmung (Groß/Kleinschreibung, Sonderzeichen, Umlaute und "The" egal) */
+function matches(answer, song){
+  const sq = x => nz(x||'').replace(/ /g,'');
+  const a = sq(answer); if(!a) return false;
+  const t = sq(song.title.replace(/\(.*?\)|\[.*?\]/g,'')), r = sq(song.artist);
+  return [t, r, sq(song.qTitle), sq(song.qArtist), t+r, r+t].some(x => x && x === a);
+}
+const DUR = 30;
+
+/* ---------- Songpool: "Interpret|Titel" ---------- */
+const POOL = {
+'70s ROCK': ['Black Sabbath|Paranoid','Black Sabbath|Iron Man','Deep Purple|Smoke on the Water','Deep Purple|Highway Star','AC/DC|Highway to Hell','AC/DC|Whole Lotta Rosie','Queen|Bohemian Rhapsody','Queen|We Will Rock You','Led Zeppelin|Stairway to Heaven','Led Zeppelin|Whole Lotta Love','Led Zeppelin|Black Dog','Rainbow|Since You Been Gone','Kiss|Rock and Roll All Nite','Aerosmith|Walk This Way','Aerosmith|Dream On','Lynyrd Skynyrd|Sweet Home Alabama','Eagles|Hotel California','Pink Floyd|Another Brick in the Wall','Thin Lizzy|The Boys Are Back in Town','Judas Priest|Victim of Changes','Boston|More Than a Feeling','Foreigner|Hot Blooded','Rush|Working Man','Van Halen|Runnin\' with the Devil','Ramones|Blitzkrieg Bop','Sex Pistols|Anarchy in the U.K.','The Clash|London Calling','Scorpions|Fly to the Rainbow','Blue Öyster Cult|(Don\'t Fear) The Reaper','Free|All Right Now','Motörhead|Overkill','Queen|Killer Queen'],
+'80s METAL': ['Metallica|Master of Puppets','Metallica|Fade to Black','Metallica|Battery','Megadeth|Peace Sells','Megadeth|Wake Up Dead','Iron Maiden|The Trooper','Iron Maiden|Run to the Hills','Iron Maiden|Hallowed Be Thy Name','Iron Maiden|The Number of the Beast','Slayer|Raining Blood','Slayer|Angel of Death','Anthrax|Madhouse','Anthrax|Indians','Judas Priest|Breaking the Law','Judas Priest|Living After Midnight','Motörhead|Ace of Spades','Ozzy Osbourne|Crazy Train','Ozzy Osbourne|Mr. Crowley','Dio|Holy Diver','Scorpions|Rock You Like a Hurricane','Guns N\' Roses|Welcome to the Jungle','Mötley Crüe|Kickstart My Heart','Twisted Sister|We\'re Not Gonna Take It','Def Leppard|Pour Some Sugar on Me','Bon Jovi|Livin\' on a Prayer','Whitesnake|Here I Go Again','Dokken|Breaking the Chains','Helloween|Eagle Fly Free','AC/DC|Back in Black','AC/DC|You Shook Me All Night Long','Accept|Balls to the Wall','Kreator|Pleasure to Kill'],
+'90s GRUNGE': ['Nirvana|Smells Like Teen Spirit','Nirvana|Come as You Are','Nirvana|Lithium','Nirvana|In Bloom','Nirvana|Heart-Shaped Box','Pearl Jam|Alive','Pearl Jam|Even Flow','Pearl Jam|Jeremy','Pearl Jam|Black','Pearl Jam|Better Man','Soundgarden|Black Hole Sun','Soundgarden|Spoonman','Soundgarden|Fell on Black Days','Soundgarden|Rusty Cage','Alice in Chains|Man in the Box','Alice in Chains|Rooster','Alice in Chains|Would?','Alice in Chains|Them Bones','Alice in Chains|Down in a Hole','Stone Temple Pilots|Plush','Stone Temple Pilots|Interstate Love Song','Stone Temple Pilots|Creep','Mudhoney|Touch Me I\'m Sick','Temple of the Dog|Hunger Strike','Screaming Trees|Nearly Lost You','Bush|Glycerine','Bush|Machinehead','Candlebox|Far Behind','Hole|Celebrity Skin','Silverchair|Tomorrow','Foo Fighters|Everlong','Rage Against the Machine|Killing in the Name'],
+'2000s ROCK': ['Linkin Park|In the End','Linkin Park|Numb','Linkin Park|One Step Closer','Linkin Park|Crawling','Linkin Park|Faint','System of a Down|Chop Suey!','System of a Down|Toxicity','System of a Down|B.Y.O.B.','System of a Down|Aerials','Korn|Freak on a Leash','Korn|Here to Stay','Slipknot|Duality','Slipknot|Before I Forget','Slipknot|Wait and Bleed','Disturbed|Down with the Sickness','Disturbed|Stricken','Papa Roach|Last Resort','Papa Roach|Scars','Evanescence|Bring Me to Life','Evanescence|My Immortal','Hoobastank|The Reason','Green Day|Boulevard of Broken Dreams','Foo Fighters|The Pretender','Muse|Hysteria','Queens of the Stone Age|No One Knows','The White Stripes|Seven Nation Army','Audioslave|Like a Stone','Nickelback|How You Remind Me','Three Days Grace|Animal I Have Become','The Killers|Mr. Brightside','Avenged Sevenfold|Bat Country','Rammstein|Du Hast']
+};
+/* Weniger bekannte Titel entfernen, große Hits ergänzen */
+const OBSCURE = new Set(['Scorpions|Fly to the Rainbow','Rush|Working Man','Judas Priest|Victim of Changes','Motörhead|Overkill','Blue Öyster Cult|(Don\'t Fear) The Reaper','Free|All Right Now','Dokken|Breaking the Chains','Helloween|Eagle Fly Free','Accept|Balls to the Wall','Kreator|Pleasure to Kill','Anthrax|Madhouse','Mudhoney|Touch Me I\'m Sick','Screaming Trees|Nearly Lost You','Candlebox|Far Behind','Bush|Machinehead','Hole|Celebrity Skin','Silverchair|Tomorrow','Stone Temple Pilots|Creep','Temple of the Dog|Hunger Strike','Hoobastank|The Reason','Three Days Grace|Animal I Have Become']);
+const EXTRA = {
+'70s ROCK': ["Led Zeppelin|Immigrant Song","Led Zeppelin|Kashmir","Led Zeppelin|Rock and Roll","Queen|Don't Stop Me Now","Queen|Somebody to Love","Queen|Another One Bites the Dust","Queen|Fat Bottomed Girls","Pink Floyd|Money","Pink Floyd|Wish You Were Here","Pink Floyd|Comfortably Numb","The Rolling Stones|Brown Sugar","Deep Purple|Child in Time","AC/DC|T.N.T.","AC/DC|Let There Be Rock","AC/DC|Dirty Deeds Done Dirt Cheap","Kiss|I Was Made for Lovin' You","Kiss|Detroit Rock City","Aerosmith|Sweet Emotion","Fleetwood Mac|Go Your Own Way","Fleetwood Mac|Dreams","David Bowie|Heroes","The Who|Baba O'Riley","The Who|Won't Get Fooled Again","Bruce Springsteen|Born to Run","Alice Cooper|School's Out","Black Sabbath|War Pigs","Black Sabbath|Black Sabbath","ZZ Top|La Grange","Lynyrd Skynyrd|Free Bird","Dire Straits|Sultans of Swing","Heart|Barracuda","Thin Lizzy|Jailbreak","Van Halen|Ain't Talkin' 'bout Love","Cheap Trick|I Want You to Want Me"],
+'80s METAL': ["Metallica|One","Metallica|Creeping Death","Metallica|For Whom the Bell Tolls","Metallica|Ride the Lightning","Metallica|Seek & Destroy","Iron Maiden|Aces High","Iron Maiden|2 Minutes to Midnight","Iron Maiden|Wasted Years","Ozzy Osbourne|Bark at the Moon","Ozzy Osbourne|Shot in the Dark","Dio|Rainbow in the Dark","Judas Priest|You've Got Another Thing Comin'","Guns N' Roses|Paradise City","Guns N' Roses|Patience","Guns N' Roses|Mr. Brownstone","Mötley Crüe|Girls, Girls, Girls","Mötley Crüe|Shout at the Devil","Poison|Every Rose Has Its Thorn","Skid Row|18 and Life","Warrant|Cherry Pie","Quiet Riot|Cum On Feel the Noize","Van Halen|Jump","Van Halen|Panama","Van Halen|Hot for Teacher","Scorpions|Still Loving You","Def Leppard|Photograph","Def Leppard|Hysteria","Bon Jovi|You Give Love a Bad Name","Bon Jovi|Wanted Dead or Alive","AC/DC|Hells Bells","AC/DC|For Those About to Rock (We Salute You)","Journey|Don't Stop Believin'","Slayer|South of Heaven","Megadeth|Hangar 18"],
+'90s GRUNGE': ["Nirvana|About a Girl","Nirvana|All Apologies","Nirvana|Rape Me","Nirvana|Polly","Nirvana|Drain You","Pearl Jam|Daughter","Pearl Jam|Last Kiss","Pearl Jam|Given to Fly","Pearl Jam|Corduroy","Pearl Jam|Yellow Ledbetter","Soundgarden|Outshined","Soundgarden|Burden in My Hand","Alice in Chains|No Excuses","Alice in Chains|Nutshell","Stone Temple Pilots|Sex Type Thing","Foo Fighters|My Hero","Foo Fighters|Learn to Fly","Foo Fighters|Monkey Wrench","Red Hot Chili Peppers|Under the Bridge","Red Hot Chili Peppers|Californication","Red Hot Chili Peppers|Give It Away","Green Day|Basket Case","Green Day|When I Come Around","Green Day|Good Riddance (Time of Your Life)","The Offspring|Self Esteem","The Offspring|Come Out and Play","The Smashing Pumpkins|1979","The Smashing Pumpkins|Tonight, Tonight","Radiohead|Creep","Metallica|Enter Sandman","Metallica|Nothing Else Matters","Metallica|The Unforgiven","Rage Against the Machine|Bulls on Parade","Guns N' Roses|November Rain","Guns N' Roses|Don't Cry","Weezer|Buddy Holly","The Cranberries|Zombie","Pantera|Walk","Live|Lightning Crashes"],
+'2000s ROCK': ["Linkin Park|Breaking the Habit","Linkin Park|Somewhere I Belong","Linkin Park|What I've Done","Linkin Park|Papercut","Linkin Park|Bleed It Out","Green Day|American Idiot","Green Day|Wake Me Up When September Ends","Green Day|Holiday","Muse|Supermassive Black Hole","Muse|Uprising","Muse|Starlight","Muse|Knights of Cydonia","Foo Fighters|All My Life","Foo Fighters|Best of You","Foo Fighters|Times Like These","The Strokes|Last Nite","The Strokes|Reptilia","Arctic Monkeys|I Bet You Look Good on the Dancefloor","Kings of Leon|Sex on Fire","Kings of Leon|Use Somebody","The White Stripes|Fell in Love with a Girl","Queens of the Stone Age|Go with the Flow","Red Hot Chili Peppers|Dani California","Red Hot Chili Peppers|By the Way","Rammstein|Sonne","Rammstein|Ich will","Rammstein|Mein Herz brennt","Rammstein|Amerika","Slipknot|Psychosocial","Disturbed|Indestructible","Disturbed|Land of Confusion","Evanescence|Going Under","Evanescence|Call Me When You're Gone","Avenged Sevenfold|Nightmare","My Chemical Romance|Welcome to the Black Parade","My Chemical Romance|Helena","Fall Out Boy|Sugar, We're Goin Down","Paramore|Misery Business","Nickelback|Photograph","Nickelback|Rockstar","The Killers|When You Were Young","Limp Bizkit|Rollin'","Blink-182|All the Small Things","Blink-182|I Miss You","Sum 41|In Too Deep"]
+};
+Object.keys(POOL).forEach(c => { POOL[c] = POOL[c].filter(e => !OBSCURE.has(e)).concat(EXTRA[c]); });
+const CATS = Object.keys(POOL);
+const songs = {};           // Cache: Kategorie -> [{title,artist,preview,cover,key,cat}]
+CATS.forEach(c => songs[c] = []);
+const usedSongs = new Set();
+
+/* ---------- Deezer (JSONP, da die API kein CORS erlaubt) ---------- */
+let jsonpN = 0;
+function jsonp(url){
+  return new Promise(res => {
+    const cb = '__dz' + (jsonpN++), s = document.createElement('script');
+    const done = v => { delete window[cb]; s.remove(); res(v); };
+    window[cb] = d => done(d);
+    s.onerror = () => done(null);
+    setTimeout(() => done(null), 9000);
+    s.src = url + (url.includes('?')?'&':'?') + 'output=jsonp&callback=' + cb;
+    document.head.appendChild(s);
+  });
+}
+/* Deezer-Abfrage mit Wiederholung bei Quota-Fehler (Code 4) */
+async function dz(url){
+  for(let i=0;i<4;i++){
+    const d = await jsonp(url);
+    if(d && d.error && d.error.code === 4){ await new Promise(r => setTimeout(r, 5000)); continue; }
+    return d;
+  }
+  return null;
+}
+async function fetchSong(cat, entry){
+  const [artist, title] = entry.split('|');
+  const q = encodeURIComponent(`artist:"${artist}" track:"${title}"`);
+  let d = await dz(`https://api.deezer.com/search?q=${q}&limit=3`);
+  let hit = d && d.data && d.data.find(x => x.preview);
+  if(!hit){
+    d = await dz(`https://api.deezer.com/search?q=${encodeURIComponent(artist+' '+title)}&limit=5`);
+    hit = d && d.data && d.data.find(x => x.preview);
+  }
+  if(!hit) return null;
+  return { title: hit.title_short || hit.title, artist: hit.artist.name, preview: hit.preview,
+           cover: hit.album.cover_big || hit.album.cover_medium || '', key: artist+'|'+title, cat,
+           qTitle: title, qArtist: artist };
+}
+let loadStarted = false;
+async function loadAllSongs(){
+  if(loadStarted) return; loadStarted = true;
+  const jobs = []; CATS.forEach(c => POOL[c].forEach(e => jobs.push([c,e])));
+  jobs.sort(() => Math.random() - .5);   // gemischt laden, damit alle Kategorien früh spielbar sind
+  let done = 0, i = 0;
+  const upd = () => { $('hLoad').textContent = `${CATS.reduce((n,c)=>n+songs[c].length,0)} Songs bereit (${done}/${jobs.length} geprüft)`; $('hBar').style.width = (done/jobs.length*100)+'%'; };
+  async function worker(){
+    while(i < jobs.length){
+      const [c,e] = jobs[i++];
+      try { const s = await fetchSong(c,e); if(s) songs[c].push(s); } catch(_){}
+      done++; upd();
+      await new Promise(r => setTimeout(r, 250));   // Rate-Limit schonen
+    }
+  }
+  upd();
+  await Promise.all([worker(),worker()]);
+  if(!CATS.some(c=>songs[c].length)) toast('Deezer nicht erreichbar – Internet prüfen und Seite neu laden.');
+}
+/* Zufälligen, noch nicht verwendeten Song wählen */
+function pickSong(cat){
+  const pool = cat === 'RANDOM' ? CATS.flatMap(c=>songs[c]) : songs[cat];
+  if(!pool.length) return null;
+  let avail = pool.filter(s => !usedSongs.has(s.key));
+  if(!avail.length){ pool.forEach(s=>usedSongs.delete(s.key)); avail = pool.slice(); toast('Alle Songs gespielt – Pool zurückgesetzt'); }
+  const s = avail[Math.floor(Math.random()*avail.length)];
+  usedSongs.add(s.key);
+  return s;
+}
+
+/* ---------- Navigation ---------- */
+const params = new URLSearchParams(location.search);
+$('bHost').onclick = startHost;
+$('bJoin').onclick = () => show('join');
+$('bBack').onclick = () => show('home');
+if(params.get('room')){ $('jr').value = params.get('room').toUpperCase(); show('join'); }
+document.querySelectorAll('input[name=mode]').forEach(r => r.onchange = () => {
+  const team = document.querySelector('input[name=mode]:checked').value === 'team';
+  $('teamBox').classList.toggle('hide', !team);
+  $('lTeam').classList.toggle('on', team); $('lSolo').classList.toggle('on', !team);
+});
+$('bGo').onclick = joinGame;
+
+/* ============================================================
+   HOST
+   ============================================================ */
+let H = null;
+function makeCode(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=c[Math.floor(Math.random()*c.length)]; return 'RQ-'+s; }
+const audio = new Audio(); audio.preload = 'auto';
+
+function startHost(){
+  H = { code:'', peer:null, players:{}, sel:null, song:null, left:DUR, running:false, open:false, revealed:false, round:0, tries:0 };
+  $('hCats').innerHTML = [...CATS,'RANDOM'].map(c=>`<button class="btn ${c==='RANDOM'?'y':''}" data-c="${c}">${c}</button>`).join('');
+  $('hCats').querySelectorAll('button').forEach(b => b.onclick = () => { H.sel = b.dataset.c; startRound(H.sel); });
+  openPeer();
+  show('host'); loadAllSongs();
+}
+function openPeer(){
+  H.code = makeCode();
+  const peer = new Peer('rockquiz-' + H.code);
+  H.peer = peer;
+  peer.on('open', () => {
+    $('hCode').textContent = H.code;
+    const url = window.location.origin + window.location.pathname + '?room=' + H.code;
+    $('hUrl').textContent = url; H.url = url;
+    $('qr').innerHTML = '';
+    new QRCode($('qr'), { text:url, width:200, height:200, colorDark:'#000000', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
+  });
+  peer.on('connection', conn => conn.on('data', m => hostMsg(conn, m)));
+  peer.on('error', e => { if(e.type==='unavailable-id' && H.tries++<5) openPeer(); else toast('PeerJS-Fehler: '+e.type); });
+}
+function send(p, m){ try{ if(p.conn && p.conn.open) p.conn.send(m); }catch(_){} }
+function broadcast(fn){ Object.values(H.players).forEach(p => p.on && send(p, typeof fn==='function'?fn(p):fn)); }
+function qMsg(){ return { t:'question', n:H.round, decade:H.song?H.song.cat:'', left:Math.ceil(H.left), run:H.running, open:H.open, dur:DUR, mode:H.mode, opts:H.opts ? H.opts.map(o => o.label) : null }; }
+
+/* Nachrichten von Spielern */
+function hostMsg(conn, m){
+  if(!m || !m.t) return;
+  if(m.t === 'join'){
+    const name = String(m.name||'').trim().slice(0,20) || 'Spieler', team = String(m.team||'').trim().slice(0,20);
+    let p = Object.values(H.players).find(x => !x.on && x.name===name && x.team===team);
+    if(p){ delete H.players[p.id]; p.id = conn.peer; p.conn = conn; p.on = true; }
+    else p = { id:conn.peer, name, team, pts:0, shown:0, conn, answer:null, ok:false, on:true };
+    p.conn = conn; H.players[p.id] = p;
+    conn.on('close', () => { p.on = false; renderHost(); });
+    send(p, { t:'joined', id:p.id, name:p.name, team:p.team, pts:p.shown });
+    if(H.song) send(p, qMsg());
+    renderHost();
+  }
+  if(m.t === 'answer'){
+    const p = H.players[conn.peer];
+    if(!p || !H.song || !H.open || H.revealed || m.n !== H.round) return;   // verspätete Antworten der Vorrunde ignorieren
+    if(H.mode === 'mc'){
+      const o = H.opts[+m.choice];
+      if(!o || p.answer !== null) return;          // nur eine Wahl pro Runde
+      p.answer = o.label; if(o.correct){ p.ok = true; p.pts++; }
+    } else { p.answer = String(m.text||'').slice(0,100); judge(p); }
+    send(p, { t:'score', pts:p.shown, ack:true });
+    renderHost();
+  }
+}
+
+/* Bewertung: Titel/Interpret (+1) und Erscheinungsjahr (+1) */
+function judge(p){
+  if(!H.song || !p.answer) return;
+  if(!p.ok && matches(p.answer, H.song)){ p.ok = true; p.pts++; }
+}
+/* Multiple-Choice: richtiger Song + 3 bekannte Fehlantworten (andere Interpreten) */
+function buildOpts(s){
+  const all = CATS.flatMap(c => songs[c]).filter(x => x.key !== s.key && x.artist !== s.artist);
+  const same = all.filter(x => x.cat === s.cat);
+  const src = (same.length >= 3 ? same : all).slice().sort(() => Math.random() - .5);
+  const seen = new Set([s.artist]), pick = [];
+  for(const x of src){ if(!seen.has(x.artist)){ seen.add(x.artist); pick.push(x); } if(pick.length === 3) break; }
+  if(pick.length < 3) return null;
+  return [s, ...pick].map((x,i) => ({ label:x.title + ' – ' + x.artist, correct:i === 0 })).sort(() => Math.random() - .5);
+}
+
+/* ---------- Beamer-Modus ---------- */
+function renderBeam(){
+  if(!H || !H.beam) return;
+  const r = rankings(), live = H.song && !H.revealed;
+  $('bPl').innerHTML = r.players.slice(0,8).map((p,i) => `<div class="row"><span>${i+1}. ${esc(p.name)}</span><b>${p.pts}</b></div>`).join('') || '<div class="era">Warte auf Spieler…</div>';
+  $('bTm').innerHTML = r.teams.slice(0,5).map((t,i) => `<div class="row"><span>${i+1}. ${esc(t.name)}</span><b>${t.pts}</b></div>`).join('') || '<div class="era">Keine Teams</div>';
+  $('bTimer').classList.toggle('hide', !live); $('bEq').classList.toggle('hide', !live);
+  $('bEq').classList.toggle('on', H.running);
+  $('bTimer').textContent = Math.ceil(H.left); $('bTimer').classList.toggle('low', H.left <= 5 && H.left > 0);
+  $('bMode').textContent = live ? (H.mode === 'mc' ? 'MULTIPLE CHOICE' : 'EINTIPPEN') : '';
+  if(!H.revealed) $('bRev').classList.add('hide');
+  /* Auflösung: 5 Sekunden einblenden, danach wieder ausblenden */
+  if(H.revealed && H.beamShown !== H.round){
+    H.beamShown = H.round;
+    $('bRev').innerHTML = `<img src="${esc(H.song.cover)}" alt=""><div class="t">${esc(H.song.title)}</div><div class="a">${esc(H.song.artist)}</div><div class="pg"><i></i></div>`;
+    $('bRev').classList.remove('hide');
+    clearTimeout(H.bt); H.bt = setTimeout(() => $('bRev').classList.add('hide'), 5000);
+  }
+}
+$('bBeam').onclick = () => {
+  if(!H.url) return toast('Raum wird noch erstellt…');
+  H.beam = true; show('beam');
+  $('bCode').textContent = H.code; $('bUrl').textContent = H.url.replace(/^https?:\/\//,'');
+  const s = Math.max(180, Math.min(380, Math.floor(innerHeight * .4)));
+  $('bQr').innerHTML = '';
+  new QRCode($('bQr'), { text:H.url, width:s, height:s, colorDark:'#000000', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
+  renderBeam();
+};
+function exitBeam(){ if(!H || !H.beam) return; H.beam = false; clearTimeout(H.bt); $('bRev').classList.add('hide'); show('host'); }
+$('bExit').onclick = exitBeam;
+$('bRand').onclick = () => startRound('RANDOM');
+document.addEventListener('keydown', e => { if(e.key === 'Escape') exitBeam(); });
+
+/* Runde starten */
+function startRound(cat){
+  const s = pickSong(cat || 'RANDOM');
+  if(!s){ toast('Noch keine Songs geladen – kurz warten…'); return; }
+  H.song = s; H.round++; H.revealed = false; H.open = true; H.left = DUR; H.running = true;
+  /* Rundentyp: abwechslungsreich zwischen Multiple Choice und Eintippen */
+  const prev = H.mode;
+  H.mode = !prev ? (Math.random() < .5 ? 'mc' : 'type') : (Math.random() < .65 ? (prev === 'mc' ? 'type' : 'mc') : prev);
+  H.opts = H.mode === 'mc' ? buildOpts(s) : null;
+  if(!H.opts) H.mode = 'type';
+  Object.values(H.players).forEach(p => { p.answer = null; p.ok = false; });
+  audio.src = s.preview; audio.currentTime = 0;
+  audio.play().catch(() => { H.running = false; toast('Autoplay blockiert – bitte PLAY drücken'); broadcast(qMsg()); renderHost(); });
+  broadcast(qMsg()); renderHost();
+}
+$('cPlay').onclick = () => {
+  if(!H.song){ startRound(H.sel || 'RANDOM'); return; }
+  if(H.left <= 0) H.left = DUR;
+  H.open = !H.revealed; H.running = true; audio.play().catch(()=>{}); broadcast(qMsg()); renderHost();
+};
+$('cPause').onclick = () => { if(!H.song) return; audio.pause(); H.running = false; broadcast(qMsg()); renderHost(); };
+$('cStop').onclick = () => { if(!H.song) return; audio.pause(); audio.currentTime = 0; H.running = false; H.left = DUR; broadcast(qMsg()); renderHost(); };
+$('cRand').onclick = () => startRound('RANDOM');
+$('cNext').onclick = () => startRound(H.sel || 'RANDOM');
+$('cRev').onclick = () => {
+  if(!H.song || H.revealed) return;
+  H.revealed = true; H.open = false; H.running = false;
+  Object.values(H.players).forEach(p => p.shown = p.pts);
+  broadcast(p => ({ t:'reveal', n:H.round, title:H.song.title, artist:H.song.artist, cover:H.song.cover, correct:p.ok, answer:p.answer||'', pts:p.pts }));
+  broadcast(qMsg()); renderHost();
+};
+$('cFin').onclick = () => {
+  const data = rankings();
+  broadcast({ t:'final', players:data.players, teams:data.teams });
+  audio.pause(); H.running = false;
+  renderFinal($('finBody'), data, null); $('finBack').classList.remove('hide'); show('fin');
+};
+$('finBack').onclick = () => show('host');
+
+/* QR-Code vergrößern (Klick öffnet Vollbild, Klick/Esc schließt) */
+$('qr').onclick = () => {
+  if(!H || !H.url) return;
+  const s = Math.min(560, Math.floor(Math.min(innerWidth, innerHeight) * 0.66));
+  $('qrBigBox').innerHTML = '';
+  new QRCode($('qrBigBox'), { text:H.url, width:s, height:s, colorDark:'#000000', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
+  $('qrBigCode').textContent = H.code;
+  $('qrBig').classList.remove('hide');
+};
+$('qrBig').onclick = () => $('qrBig').classList.add('hide');
+document.addEventListener('keydown', e => { if(e.key === 'Escape') $('qrBig').classList.add('hide'); });
+
+/* Timer (Host ist die Zeitquelle) */
+setInterval(() => {
+  if(!H || !H.running) return;
+  H.left -= 0.25;
+  if(H.left <= 0){ H.left = 0; H.running = false; H.open = false; audio.pause(); broadcast(qMsg()); renderHost();
+    if(H.beam && !H.revealed) $('cRev').click(); }
+  else { $('bTimer').textContent = Math.ceil(H.left); $('bTimer').classList.toggle('low', H.left <= 5); $('hTimer').textContent = Math.ceil(H.left); $('hTimer').classList.toggle('low', H.left <= 5); }
+}, 250);
+
+/* Rankings */
+function rankings(){
+  const list = Object.values(H.players);
+  const players = list.map(p => ({ name:p.name, team:p.team, pts:p.shown })).sort((a,b)=>b.pts-a.pts);
+  const t = {};
+  list.forEach(p => { if(p.team){ t[p.team] = t[p.team] || { name:p.team, pts:0, n:0 }; t[p.team].pts += p.shown; t[p.team].n++; } });
+  return { players, teams:Object.values(t).sort((a,b)=>b.pts-a.pts) };
+}
+
+/* Host-Anzeige */
+function renderHost(){
+  if(!H) return;
+  const list = Object.values(H.players), r = rankings();
+  $('hCnt').textContent = list.filter(p=>p.on).length;
+  $('hPlayers').innerHTML = list.length ? list.map(p=>`<div class="row ${p.on?'':'off'}"><span>${esc(p.name)} <small>${p.team?esc(p.team):'Solo'}</small></span><b>${p.shown}</b></div>`).join('') : '<div class="era">Warte auf Spieler…</div>';
+  $('hScores').innerHTML = r.players.length ? r.players.map((p,i)=>`<div class="row"><span>${i+1}. ${esc(p.name)}</span><b>${p.pts}</b></div>`).join('') : '–';
+  $('hTeams').innerHTML = r.teams.length ? r.teams.map((t,i)=>`<div class="row"><span>${i+1}. ${esc(t.name)} <small>${t.n} Spieler</small></span><b>${t.pts}</b></div>`).join('') : '<div class="era">Keine Teams</div>';
+  $('hTimer').textContent = Math.ceil(H.left); $('hTimer').classList.toggle('low', H.left<=5 && H.left>0);
+  $('hDec').textContent = H.song ? H.song.cat + ' · ' + (H.mode === 'mc' ? 'MULTIPLE CHOICE' : 'EINTIPPEN') : '';
+  document.querySelectorAll('.vinyl').forEach(v=>v.classList.toggle('spin', H.running));
+  $('hEq').classList.toggle('on', H.running);
+  renderBeam();
+  $('hSong').innerHTML = (H.song && !H.revealed) ? '<div><div class="t">? ? ?</div><div class="a">Song läuft – Titel, Interpret, Jahr und Cover erscheinen erst nach AUFLÖSEN.</div></div>' : H.song ? `<img src="${esc(H.song.cover)}" alt=""><div><div class="t">${esc(H.song.title)}</div><div class="a">${esc(H.song.artist)}</div><div class="host-only">NUR FÜR HOST SICHTBAR${H.revealed?' · AUFGELÖST':''}</div></div>` : '<div class="a">Noch kein Song.</div>';
+  $('hAns').innerHTML = list.filter(p=>p.answer!==null).map(p=>`<div class="row"><span>${esc(p.name)}: ${esc(p.answer)}</span><b class="${!H.revealed?'':p.ok?'ok':'no'}">${!H.revealed?'…':p.ok?'✔ +1':'✘'}</b></div>`).join('') || '<div class="era">Noch keine Antworten.</div>';
+}
+
+/* Finale (Host und Spieler) */
+function renderFinal(el, d, me){
+  const pod = (arr, label) => arr.slice(0,3).map((x,i)=>`<div class="pod p${i+1}"><span>${['PLATZ 1','PLATZ 2','PLATZ 3'][i]}</span><span>${esc(x.name)}</span><span>${x.pts}</span></div>`).join('') || '<div class="era">–</div>';
+  const w = d.players[0];
+  el.innerHTML = (w ? `<div class="star"><div class="era">ROCKSTAR OF THE NIGHT</div><div class="n">★ ${esc(w.name)} ★</div><div class="sub">${w.pts} PUNKTE${w.team?' · '+esc(w.team):''}</div></div>` : '')
+    + `<div class="panel"><h2>SPIELER-RANKING</h2>${pod(d.players)}${d.players.slice(3).map((p,i)=>`<div class="row"><span>${i+4}. ${esc(p.name)}</span><b>${p.pts}</b></div>`).join('')}</div>`
+    + `<div class="panel"><h2>TEAM-RANKING</h2>${pod(d.teams)}</div>`
+    + (me ? `<div class="era" style="text-align:center">Du: ${esc(me.name)} – ${(d.players.find(p=>p.name===me.name)||{}).pts||0} Punkte</div>` : '');
+}
+
+/* ============================================================
+   SPIELER
+   ============================================================ */
+let P = null, pPeer = null, pConn = null;
+function joinGame(){
+  const code = $('jr').value.trim().toUpperCase(), name = $('jn').value.trim();
+  const team = document.querySelector('input[name=mode]:checked').value === 'team' ? $('jt').value.trim() : '';
+  if(!/^RQ-[A-Z0-9]{6}$/.test(code)) return toast('Bitte gültigen Raumcode eingeben (RQ-XXXXXX)');
+  if(!name) return toast('Bitte Namen eingeben');
+  if(document.querySelector('input[name=mode]:checked').value === 'team' && !team) return toast('Bitte Teamnamen eingeben');
+  P = { code, name, team, left:DUR, running:false, open:false, n:-1, sent:false };
+  $('bGo').disabled = true; $('bGo').textContent = 'VERBINDE…';
+  const fail = msg => { $('bGo').disabled = false; $('bGo').textContent = 'BEITRETEN'; toast(msg); };
+  pPeer = new Peer();
+  pPeer.on('error', e => fail('Verbindung fehlgeschlagen – Raumcode prüfen ('+e.type+')'));
+  pPeer.on('open', () => {
+    pConn = pPeer.connect('rockquiz-' + code, { reliable:true });
+    const to = setTimeout(() => fail('Host nicht gefunden'), 10000);
+    pConn.on('open', () => { clearTimeout(to); pConn.send({ t:'join', name, team }); });
+    pConn.on('data', playerMsg);
+    pConn.on('close', () => toast('Verbindung zum Host verloren'));
+  });
+}
+function playerMsg(m){
+  if(!m || !m.t) return;
+  if(m.t === 'joined'){
+    $('pName').textContent = m.name + (m.team ? ' · ' + m.team : ''); $('pPts').textContent = m.pts;
+    show('player'); history.replaceState(null,'',location.pathname+'?room='+P.code);
+  }
+  if(m.t === 'question'){
+    if(m.n !== P.n){ P.n = m.n; P.sent = false; $('pIn').value = ''; $('pFb').textContent = ''; $('pRev').classList.add('hide'); $('pQ').classList.remove('hide'); $('pFinal').classList.add('hide'); setupQuestion(m); }
+    $('pWait').classList.add('hide'); $('pGame').classList.remove('hide');
+    P.left = m.left; P.running = m.run; P.open = m.open; $('pEq').classList.toggle('on', m.run);
+    $('pDec').textContent = m.decade + (m.mode === 'mc' ? ' · MULTIPLE CHOICE' : ' · EINTIPPEN'); drawTimer(); $('pSend').disabled = !P.open;
+    $('pOpts').querySelectorAll('button').forEach(b => { if(!P.open) b.disabled = true; });
+  }
+  if(m.t === 'score'){ $('pPts').textContent = m.pts; if(m.ack) $('pFb').textContent = 'Antwort gesendet ✔'; }
+  if(m.t === 'reveal'){
+    P.open = false; $('pSend').disabled = true; $('pPts').textContent = m.pts;
+    $('pQ').classList.add('hide'); $('pRev').classList.remove('hide');
+    $('pRev').innerHTML = `<div class="info"><img src="${esc(m.cover)}" alt=""><div><div class="t">${esc(m.title)}</div><div class="a">${esc(m.artist)}</div></div></div>`
+      + `<div class="sub ${m.correct?'ok':'no'}" style="text-align:center">${m.correct?'✔ RICHTIG! +1':'✘ LEIDER FALSCH'}</div>` + (m.answer?`<div class="era" style="text-align:center">Deine Antwort: ${esc(m.answer)}</div>`:'');
+  }
+  if(m.t === 'final'){
+    $('pGame').classList.add('hide'); $('pWait').classList.add('hide'); $('pFinal').classList.remove('hide');
+    renderFinal($('pFinal'), m, P);
+  }
+}
+/* Neue Runde: Multiple-Choice-Buttons oder Eingabefeld anzeigen */
+function setupQuestion(m){
+  const mc = m.mode === 'mc' && m.opts;
+  $('pIn').classList.toggle('hide', !!mc); $('pSend').classList.toggle('hide', !!mc);
+  $('pH').textContent = mc ? 'WELCHER SONG LÄUFT? WÄHLE:' : 'WELCHER SONG LÄUFT? TIPPE:';
+  $('pOpts').innerHTML = mc ? m.opts.map((o,i) => `<button class="btn g big" data-i="${i}" style="font-size:16px;margin:10px auto;text-align:left">${esc(o)}</button>`).join('') : '';
+  $('pOpts').querySelectorAll('button').forEach(b => b.onclick = () => {
+    if(!P.open || P.sent) return;
+    P.sent = true; pConn.send({ t:'answer', choice:+b.dataset.i, n:P.n });
+    $('pOpts').querySelectorAll('button').forEach(x => { x.disabled = true; });
+    b.classList.remove('g'); b.classList.add('y'); $('pFb').textContent = 'Antwort gesendet ✔';
+  });
+}
+function drawTimer(){ $('pTimer').textContent = Math.max(0, Math.ceil(P.left)); $('pTimer').classList.toggle('low', P.left<=5); }
+setInterval(() => { if(P && P.running && P.left > 0){ P.left = Math.max(0, P.left-0.25); drawTimer(); } }, 250);
+$('pSend').onclick = () => {
+  const text = $('pIn').value.trim();
+  if(!text) return toast('Bitte Antwort eingeben');
+  if(!P.open) return toast('Zeit ist abgelaufen');
+  pConn.send({ t:'answer', text, n:P.n });
+  $('pFb').textContent = 'Sende…';
+};
+$('pIn').addEventListener('keydown', e => { if(e.key === 'Enter') $('pSend').click(); });
+</script>
+</body>
+</html>
