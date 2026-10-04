@@ -243,6 +243,9 @@ input[type=text]:focus{border-color:var(--ink);box-shadow:4px 4px 0 var(--red)}
 #bRev img{border:4px solid var(--ink);border-radius:0;box-shadow:10px 10px 0 var(--ink)}
 #bRev .t{color:var(--ink)}#bRev .a{color:var(--red)}
 #bRev .pg{background:#fff8e8;border:2px solid var(--ink);border-radius:0}#bRev .pg i{background:var(--red)}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 18px}
+.chip{font-family:inherit;font-weight:700;font-size:15px;padding:10px 14px;background:var(--pn);color:var(--ink);border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);cursor:pointer;text-transform:uppercase}
+.chip.on{background:var(--yel)}
 </style>
 </head>
 <body>
@@ -269,7 +272,12 @@ input[type=text]:focus{border-color:var(--ink);box-shadow:4px 4px 0 var(--red)}
       <label class="on" id="lSolo"><input type="radio" name="mode" value="solo" checked>Solo</label>
       <label id="lTeam"><input type="radio" name="mode" value="team">Team</label>
     </div>
-    <div id="teamBox" class="hide"><label>TEAMNAME</label><input type="text" id="jt" placeholder="TEAMNAME" maxlength="20" autocomplete="off"></div>
+    <div id="teamBox" class="hide">
+      <label>BESTEHENDEM TEAM BEITRETEN</label>
+      <div id="teamList" class="chips"><span class="era">Gib zuerst den Raumcode ein…</span></div>
+      <label>ODER NEUES TEAM ERSTELLEN</label>
+      <input type="text" id="jt" placeholder="NEUER TEAMNAME" maxlength="20" autocomplete="off">
+    </div>
     <button class="btn big y" id="bGo">BEITRETEN</button>
     <button class="btn g" id="bBack" style="width:100%">ZURÜCK</button>
   </div>
@@ -334,6 +342,7 @@ input[type=text]:focus{border-color:var(--ink);box-shadow:4px 4px 0 var(--red)}
   <div class="panel" id="pWait"><h2>WARTE AUF HOST…</h2><div class="era">Gleich geht's los!</div></div>
   <div id="pGame" class="hide">
     <div class="dec" id="pDec"></div>
+    <div id="pCd" class="hide" style="text-align:center"><div class="sub" style="margin:0">GLEICH GEHT'S LOS</div><div class="timer" id="pCdN">5</div></div>
     <div class="timer" id="pTimer">30</div>
     <div class="eq" id="pEq"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
     <div class="panel" id="pQ">
@@ -382,7 +391,8 @@ function matches(answer, song){
   const t = sq(song.title.replace(/\(.*?\)|\[.*?\]/g,'')), r = sq(song.artist);
   return [t, r, sq(song.qTitle), sq(song.qArtist), t+r, r+t].some(x => x && x === a);
 }
-const DUR = 30;
+const DUR = 30;   // Ratezeit in Sekunden
+const CD = 5;     // Countdown vor jedem Song in Sekunden
 
 /* ---------- Songpool: "Interpret|Titel" ---------- */
 const POOL = {
@@ -481,8 +491,41 @@ document.querySelectorAll('input[name=mode]').forEach(r => r.onchange = () => {
   const team = document.querySelector('input[name=mode]:checked').value === 'team';
   $('teamBox').classList.toggle('hide', !team);
   $('lTeam').classList.toggle('on', team); $('lSolo').classList.toggle('on', !team);
+  if(team) loadTeams();
 });
 $('bGo').onclick = joinGame;
+
+/* Bestehende Teams beim Host abfragen (kurze Verbindung, danach wieder schließen) */
+let teamTimer;
+function loadTeams(){
+  const code = $('jr').value.trim().toUpperCase();
+  if(!/^RQ-[A-Z0-9]{6}$/.test(code) || $('teamBox').classList.contains('hide')) return;
+  $('teamList').innerHTML = '<span class="era">Lade Teams…</span>';
+  let done = false, pe = new Peer();
+  const fin = html => {
+    if(done) return; done = true;
+    $('teamList').innerHTML = html; try{ pe.destroy(); }catch(_){}
+    $('teamList').querySelectorAll('.chip').forEach(b => b.onclick = () => { $('jt').value = b.dataset.n; markChips(); });
+    markChips();
+  };
+  setTimeout(() => fin('<span class="era">Host nicht gefunden – Raumcode prüfen.</span>'), 8000);
+  pe.on('error', () => fin('<span class="era">Teams konnten nicht geladen werden.</span>'));
+  pe.on('open', () => {
+    const c = pe.connect('rockquiz-' + code, { reliable:true });
+    c.on('open', () => c.send({ t:'teams' }));
+    c.on('data', m => {
+      if(!m || m.t !== 'teams') return;
+      fin(m.list.length ? m.list.map(x => `<button type="button" class="chip" data-n="${esc(x.name)}">${esc(x.name)} (${x.n})</button>`).join('')
+                        : '<span class="era">Noch keine Teams – erstelle das erste!</span>');
+    });
+  });
+}
+function markChips(){
+  const v = $('jt').value.trim().toLowerCase();
+  $('teamList').querySelectorAll('.chip').forEach(b => b.classList.toggle('on', b.dataset.n.toLowerCase() === v));
+}
+$('jt').oninput = markChips;
+$('jr').oninput = () => { clearTimeout(teamTimer); teamTimer = setTimeout(loadTeams, 500); };
 
 /* ============================================================
    HOST
@@ -514,13 +557,21 @@ function openPeer(){
 }
 function send(p, m){ try{ if(p.conn && p.conn.open) p.conn.send(m); }catch(_){} }
 function broadcast(fn){ Object.values(H.players).forEach(p => p.on && send(p, typeof fn==='function'?fn(p):fn)); }
-function qMsg(){ return { t:'question', n:H.round, decade:H.song?H.song.cat:'', left:Math.ceil(H.left), run:H.running, open:H.open, dur:DUR, mode:H.mode, opts:H.opts ? H.opts.map(o => o.label) : null }; }
+function qMsg(){ return { t:'question', n:H.round, decade:H.song?H.song.cat:'', left:Math.ceil(H.left), run:H.running, open:H.open, dur:DUR, cd:Math.ceil(H.cd || 0), mode:H.mode, opts:H.opts ? H.opts.map(o => o.label) : null }; }
 
 /* Nachrichten von Spielern */
 function hostMsg(conn, m){
   if(!m || !m.t) return;
+  if(m.t === 'teams'){                       // Liste bestehender Teams für das Beitreten-Menü
+    const t = {};
+    Object.values(H.players).forEach(p => { if(p.team) t[p.team] = (t[p.team] || 0) + 1; });
+    try{ conn.send({ t:'teams', list:Object.keys(t).map(n => ({ name:n, n:t[n] })) }); }catch(_){}
+    return;
+  }
   if(m.t === 'join'){
-    const name = String(m.name||'').trim().slice(0,20) || 'Spieler', team = String(m.team||'').trim().slice(0,20);
+    const name = String(m.name||'').trim().slice(0,20) || 'Spieler'; let team = String(m.team||'').trim().slice(0,20);
+    const ex = Object.values(H.players).find(x => x.team && x.team.toLowerCase() === team.toLowerCase());
+    if(ex) team = ex.team;                   // gleiche Teams unabhängig von Groß/Kleinschreibung zusammenführen
     let p = Object.values(H.players).find(x => !x.on && x.name===name && x.team===team);
     if(p){ delete H.players[p.id]; p.id = conn.peer; p.conn = conn; p.on = true; }
     else p = { id:conn.peer, name, team, pts:0, shown:0, conn, answer:null, ok:false, on:true };
@@ -567,8 +618,8 @@ function renderBeam(){
   $('bTm').innerHTML = r.teams.slice(0,5).map((t,i) => `<div class="row"><span>${i+1}. ${esc(t.name)}</span><b>${t.pts}</b></div>`).join('') || '<div class="era">Keine Teams</div>';
   $('bTimer').classList.toggle('hide', !live); $('bEq').classList.toggle('hide', !live);
   $('bEq').classList.toggle('on', H.running);
-  $('bTimer').textContent = Math.ceil(H.left); $('bTimer').classList.toggle('low', H.left <= 5 && H.left > 0);
-  $('bMode').textContent = live ? (H.mode === 'mc' ? 'MULTIPLE CHOICE' : 'EINTIPPEN') : '';
+  $('bTimer').textContent = H.cd > 0 ? Math.ceil(H.cd) : Math.ceil(H.left); $('bTimer').classList.toggle('low', !(H.cd > 0) && H.left <= 5 && H.left > 0);
+  $('bMode').textContent = live ? (H.cd > 0 ? 'GLEICH GEHT\'S LOS' : (H.mode === 'mc' ? 'MULTIPLE CHOICE' : 'EINTIPPEN')) : '';
   if(!H.revealed) $('bRev').classList.add('hide');
   /* Auflösung: 5 Sekunden einblenden, danach wieder ausblenden */
   if(H.revealed && H.beamShown !== H.round){
@@ -597,33 +648,44 @@ $('bExit').onclick = exitBeam;
 $('bRand').onclick = () => startRound('RANDOM');
 document.addEventListener('keydown', e => { if(e.key === 'Escape') exitBeam(); });
 
+/* Nach dem Countdown: Musik starten, Antworten freigeben, Timer laufen lassen */
+function startMusic(){
+  H.cd = 0; H.open = true; H.running = true; H.left = DUR;
+  audio.muted = false; audio.currentTime = 0;
+  audio.play().catch(() => { H.running = false; toast('Autoplay blockiert – bitte PLAY drücken'); broadcast(qMsg()); renderHost(); });
+  broadcast(qMsg()); renderHost();
+}
 /* Runde starten */
 function startRound(cat){
   const s = pickSong(cat || 'RANDOM');
   if(!s){ toast('Noch keine Songs geladen – kurz warten…'); return; }
-  H.song = s; H.round++; H.revealed = false; H.open = true; H.left = DUR; H.running = true;
+  H.song = s; H.round++; H.revealed = false; H.open = false; H.left = DUR; H.running = false; H.cd = CD;
   /* Rundentyp: abwechslungsreich zwischen Multiple Choice und Eintippen */
   const prev = H.mode;
   H.mode = !prev ? (Math.random() < .5 ? 'mc' : 'type') : (Math.random() < .65 ? (prev === 'mc' ? 'type' : 'mc') : prev);
   H.opts = H.mode === 'mc' ? buildOpts(s) : null;
   if(!H.opts) H.mode = 'type';
   Object.values(H.players).forEach(p => { p.answer = null; p.ok = false; });
-  audio.src = s.preview; audio.currentTime = 0;
-  audio.play().catch(() => { H.running = false; toast('Autoplay blockiert – bitte PLAY drücken'); broadcast(qMsg()); renderHost(); });
+  audio.pause(); audio.src = s.preview; audio.currentTime = 0;
+  /* Audio im Klick-Moment stumm "entsperren", damit der Start nach dem Countdown nicht blockiert wird */
+  audio.muted = true;
+  audio.play().then(() => { audio.pause(); audio.currentTime = 0; audio.muted = false; }).catch(() => { audio.muted = false; });
+  
   broadcast(qMsg()); renderHost();
 }
 $('cPlay').onclick = () => {
   if(!H.song){ startRound(H.sel || 'RANDOM'); return; }
+  if(H.cd > 0){ startMusic(); return; }          // Countdown überspringen
   if(H.left <= 0) H.left = DUR;
   H.open = !H.revealed; H.running = true; audio.play().catch(()=>{}); broadcast(qMsg()); renderHost();
 };
-$('cPause').onclick = () => { if(!H.song) return; audio.pause(); H.running = false; broadcast(qMsg()); renderHost(); };
-$('cStop').onclick = () => { if(!H.song) return; audio.pause(); audio.currentTime = 0; H.running = false; H.left = DUR; broadcast(qMsg()); renderHost(); };
+$('cPause').onclick = () => { if(!H.song) return; H.cd = 0; audio.pause(); H.running = false; broadcast(qMsg()); renderHost(); };
+$('cStop').onclick = () => { if(!H.song) return; H.cd = 0; audio.pause(); audio.currentTime = 0; H.running = false; H.left = DUR; broadcast(qMsg()); renderHost(); };
 $('cRand').onclick = () => startRound('RANDOM');
 $('cNext').onclick = () => startRound(H.sel || 'RANDOM');
 $('cRev').onclick = () => {
   if(!H.song || H.revealed) return;
-  H.revealed = true; H.open = false; H.running = false;
+  H.revealed = true; H.open = false; H.running = false; H.cd = 0;
   Object.values(H.players).forEach(p => p.shown = p.pts);
   broadcast(p => ({ t:'reveal', n:H.round, title:H.song.title, artist:H.song.artist, cover:H.song.cover, correct:p.ok, answer:p.answer||'', pts:p.pts }));
   broadcast(qMsg()); renderHost();
@@ -650,6 +712,12 @@ document.addEventListener('keydown', e => { if(e.key === 'Escape') $('qrBig').cl
 
 /* Timer (Host ist die Zeitquelle) */
 setInterval(() => {
+  if(H && H.cd > 0){                       // Countdown vor dem Song
+    H.cd -= 0.25;
+    if(H.cd <= 0) startMusic();
+    else { const n = Math.ceil(H.cd); $('hTimer').textContent = n; $('bTimer').textContent = n; $('hTimer').classList.remove('low'); $('bTimer').classList.remove('low'); }
+    return;
+  }
   if(!H || !H.running) return;
   H.left -= 0.25;
   if(H.left <= 0){ H.left = 0; H.running = false; H.open = false; audio.pause(); broadcast(qMsg()); renderHost();
@@ -674,7 +742,7 @@ function renderHost(){
   $('hPlayers').innerHTML = list.length ? list.map(p=>`<div class="row ${p.on?'':'off'}"><span>${esc(p.name)} <small>${p.team?esc(p.team):'Solo'}</small></span><b>${p.shown}</b></div>`).join('') : '<div class="era">Warte auf Spieler…</div>';
   $('hScores').innerHTML = r.players.length ? r.players.map((p,i)=>`<div class="row"><span>${i+1}. ${esc(p.name)}</span><b>${p.pts}</b></div>`).join('') : '–';
   $('hTeams').innerHTML = r.teams.length ? r.teams.map((t,i)=>`<div class="row"><span>${i+1}. ${esc(t.name)} <small>${t.n} Spieler</small></span><b>${t.pts}</b></div>`).join('') : '<div class="era">Keine Teams</div>';
-  $('hTimer').textContent = Math.ceil(H.left); $('hTimer').classList.toggle('low', H.left<=5 && H.left>0);
+  $('hTimer').textContent = H.cd > 0 ? Math.ceil(H.cd) : Math.ceil(H.left); $('hTimer').classList.toggle('low', !(H.cd > 0) && H.left<=5 && H.left>0);
   $('hDec').textContent = H.song ? H.song.cat + ' · ' + (H.mode === 'mc' ? 'MULTIPLE CHOICE' : 'EINTIPPEN') : '';
   document.querySelectorAll('.vinyl').forEach(v=>v.classList.toggle('spin', H.running));
   $('hEq').classList.toggle('on', H.running);
@@ -727,7 +795,8 @@ function playerMsg(m){
     $('pWait').classList.add('hide'); $('pGame').classList.remove('hide');
     P.left = m.left; P.running = m.run; P.open = m.open; $('pEq').classList.toggle('on', m.run);
     $('pDec').textContent = m.decade + (m.mode === 'mc' ? ' · MULTIPLE CHOICE' : ' · EINTIPPEN'); drawTimer(); $('pSend').disabled = !P.open;
-    $('pOpts').querySelectorAll('button').forEach(b => { if(!P.open) b.disabled = true; });
+    $('pOpts').querySelectorAll('button').forEach(b => { b.disabled = !P.open || P.sent; });
+    P.cd = m.cd || 0; drawCd();
   }
   if(m.t === 'score'){ $('pPts').textContent = m.pts; if(m.ack) $('pFb').textContent = 'Antwort gesendet ✔'; }
   if(m.t === 'reveal'){
@@ -754,8 +823,15 @@ function setupQuestion(m){
     b.classList.remove('g'); b.classList.add('y'); $('pFb').textContent = 'Antwort gesendet ✔';
   });
 }
+/* Countdown vor dem Song auf dem Handy: Countdown statt Timer anzeigen */
+function drawCd(){
+  const on = P.cd > 0;
+  $('pCd').classList.toggle('hide', !on); $('pTimer').classList.toggle('hide', on); $('pEq').classList.toggle('hide', on);
+  if(on) $('pCdN').textContent = Math.ceil(P.cd);
+}
 function drawTimer(){ $('pTimer').textContent = Math.max(0, Math.ceil(P.left)); $('pTimer').classList.toggle('low', P.left<=5); }
-setInterval(() => { if(P && P.running && P.left > 0){ P.left = Math.max(0, P.left-0.25); drawTimer(); } }, 250);
+setInterval(() => { if(P && P.cd > 0){ P.cd = Math.max(0, P.cd - 0.25); drawCd(); }
+  if(P && P.running && P.left > 0){ P.left = Math.max(0, P.left-0.25); drawTimer(); } }, 250);
 $('pSend').onclick = () => {
   const text = $('pIn').value.trim();
   if(!text) return toast('Bitte Antwort eingeben');
