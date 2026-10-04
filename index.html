@@ -575,7 +575,12 @@ function renderBeam(){
     H.beamShown = H.round;
     $('bRev').innerHTML = `<img src="${esc(H.song.cover)}" alt=""><div class="t">${esc(H.song.title)}</div><div class="a">${esc(H.song.artist)}</div><div class="pg"><i></i></div>`;
     $('bRev').classList.remove('hide');
-    clearTimeout(H.bt); H.bt = setTimeout(() => $('bRev').classList.add('hide'), 5000);
+    clearTimeout(H.bt);
+    const rd = H.round;
+    H.bt = setTimeout(() => {
+      $('bRev').classList.add('hide');
+      if(H.beam && H.round === rd && H.revealed) startRound('RANDOM');   // automatisch nächster Song
+    }, 5000);
   }
 }
 $('bBeam').onclick = () => {
