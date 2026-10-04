@@ -330,6 +330,7 @@ input[type=text]:focus{border-color:var(--ink);box-shadow:4px 4px 0 var(--red)}
       <div class="timer hide" id="bTimer">30</div>
       <div class="eq hide" id="bEq"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
       <button class="btn y big" id="bRand">RANDOM SONG</button>
+      <button class="btn g big" id="bPause">PAUSE</button>
     </div>
     <div><div class="panel"><h2>RANGLISTE</h2><div id="bPl"></div></div><div class="panel"><h2>TEAMS</h2><div id="bTm"></div></div></div>
   </div>
@@ -620,6 +621,9 @@ function renderBeam(){
   $('bEq').classList.toggle('on', H.running);
   $('bTimer').textContent = H.cd > 0 ? Math.ceil(H.cd) : Math.ceil(H.left); $('bTimer').classList.toggle('low', !(H.cd > 0) && H.left <= 5 && H.left > 0);
   $('bMode').textContent = live ? (H.cd > 0 ? 'GLEICH GEHT\'S LOS' : (H.mode === 'mc' ? 'MULTIPLE CHOICE' : 'EINTIPPEN')) : '';
+  const ps = H.paused && (H.cd > 0 || !H.running || H.revealed);
+  $('bPause').textContent = ps ? 'WEITER ▶' : 'PAUSE';
+  if(ps && live) $('bMode').textContent = 'PAUSE';
   if(!H.revealed) $('bRev').classList.add('hide');
   /* Auflösung: 5 Sekunden einblenden, danach wieder ausblenden */
   if(H.revealed && H.beamShown !== H.round){
@@ -646,6 +650,20 @@ $('bBeam').onclick = () => {
 function exitBeam(){ if(!H || !H.beam) return; H.beam = false; clearTimeout(H.bt); $('bRev').classList.add('hide'); show('host'); }
 $('bExit').onclick = exitBeam;
 $('bRand').onclick = () => startRound('RANDOM');
+/* Pause/Weiter: hält Musik, Timer, Countdown und den automatischen Songwechsel an */
+$('bPause').onclick = () => {
+  if(!H.song) return toast('Erst einen Song starten');
+  if(!H.paused){
+    H.paused = true;
+    if(H.running){ H.running = false; H.resumeRun = true; audio.pause(); broadcast(qMsg()); }
+    if(H.revealed){ clearTimeout(H.bt); H.pausedReveal = true; }
+  } else {
+    H.paused = false;
+    if(H.pausedReveal){ H.pausedReveal = false; $('bRev').classList.add('hide'); startRound('RANDOM'); }
+    else if(H.resumeRun && H.cd <= 0 && !H.revealed){ H.resumeRun = false; H.running = true; audio.play().catch(() => {}); broadcast(qMsg()); }
+  }
+  renderHost();
+};
 document.addEventListener('keydown', e => { if(e.key === 'Escape') exitBeam(); });
 
 /* Nach dem Countdown: Musik starten, Antworten freigeben, Timer laufen lassen */
@@ -659,7 +677,7 @@ function startMusic(){
 function startRound(cat){
   const s = pickSong(cat || 'RANDOM');
   if(!s){ toast('Noch keine Songs geladen – kurz warten…'); return; }
-  H.song = s; H.round++; H.revealed = false; H.open = false; H.left = DUR; H.running = false; H.cd = CD;
+  H.song = s; H.round++; H.revealed = false; H.open = false; H.left = DUR; H.running = false; H.cd = CD; H.paused = false; H.resumeRun = false; H.pausedReveal = false;
   /* Rundentyp: abwechslungsreich zwischen Multiple Choice und Eintippen */
   const prev = H.mode;
   H.mode = !prev ? (Math.random() < .5 ? 'mc' : 'type') : (Math.random() < .65 ? (prev === 'mc' ? 'type' : 'mc') : prev);
@@ -713,6 +731,7 @@ document.addEventListener('keydown', e => { if(e.key === 'Escape') $('qrBig').cl
 /* Timer (Host ist die Zeitquelle) */
 setInterval(() => {
   if(H && H.cd > 0){                       // Countdown vor dem Song
+    if(H.paused) return;
     H.cd -= 0.25;
     if(H.cd <= 0) startMusic();
     else { const n = Math.ceil(H.cd); $('hTimer').textContent = n; $('bTimer').textContent = n; $('hTimer').classList.remove('low'); $('bTimer').classList.remove('low'); }
